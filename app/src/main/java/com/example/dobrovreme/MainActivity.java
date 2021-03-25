@@ -32,59 +32,69 @@ import com.google.gson.*;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Tukaj se vse začne -> ob nastanku Activityja
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ImageView help_me = (ImageView) findViewById(R.id.help);
+        // Inicializacija ikonc in gumbov
+        ImageView help_me = (ImageView) findViewById(R.id.help); // gumb za informacije
+        EditText kraj_search = (EditText) findViewById(R.id.kraj_search); // prostor za vnost kraja
+        ImageView search_img = (ImageView) findViewById(R.id.search_img); // gumb (slika) za začetek poizvedovanja vnosa
+        ProgressBar nalaganje = (ProgressBar) findViewById(R.id.nalaganje); // vrtalka med poizvedovanjem
+        nalaganje.setVisibility(View.INVISIBLE); // skrij vrtalko (ker se nič ne poizveduje ob zagonu)
+        ImageView refresh = (ImageView) findViewById(R.id.refresh); // gumb (slika) za osvežitev podatkov
+        TextView nazadnje = (TextView) findViewById(R.id.nazadnje); // podatki o zadnji osvežitvi
+        
+        // informativni podatki o vremenu
+        TextView kraj_text = (TextView) findViewById(R.id.kraj_text); //ime in država kraja
+        TextView kraj_stopinje = (TextView) findViewById(R.id.kraj_stopinje); // temperatura
+        ImageView ikona_vremena = (ImageView) findViewById(R.id.ikona_vremena); // ikona vremena (sonček, oblaki ...)
+        TextView opis = (TextView) findViewById(R.id.opis); // preprost opis (Jasno, Sneži, ...)
+        TextView zdise = (TextView) findViewById(R.id.zdise); // RealFeel tehnologija
+        TextView minmax = (TextView) findViewById(R.id.minmax); // Minimalne in maksimalne izmerjene temperature
 
-        EditText kraj_search = (EditText) findViewById(R.id.kraj_search);
-        ImageView search_img = (ImageView) findViewById(R.id.search_img);
-        ProgressBar nalaganje = (ProgressBar) findViewById(R.id.nalaganje);
-        nalaganje.setVisibility(View.INVISIBLE);
-
-        TextView kraj_text = (TextView) findViewById(R.id.kraj_text);
-        TextView kraj_stopinje = (TextView) findViewById(R.id.kraj_stopinje);
-        ImageView ikona_vremena = (ImageView) findViewById(R.id.ikona_vremena);
-
-        TextView opis = (TextView) findViewById(R.id.opis);
-        TextView zdise = (TextView) findViewById(R.id.zdise);
-        TextView minmax = (TextView) findViewById(R.id.minmax);
-
-        ImageView refresh = (ImageView) findViewById(R.id.refresh);
-        TextView nazadnje = (TextView) findViewById(R.id.nazadnje);
-
+        // Nalaganje podatkov iz shrambe
         loadFromStorage(kraj_text, kraj_stopinje, ikona_vremena);
 
+        // DEBUG -> čas
         System.out.println(getTimestamp());
 
+        // Handler za pomoč
         help_me.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
+                // Funkcija odpiranja pomoči
                 openHelpMe();
             }
         });
 
+        // Handler za klik gumba za poizvedovanje
         search_img.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
+                
+                // Shrani podatke o trenutnem času za podatek o zadnjem osveževanju
                 try {
                     saveTimestamp(getTimestamp());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
+                // Gumb za iskanje se skrije in gumb nalaganja se prikaže
                 search_img.setVisibility(View.INVISIBLE);
                 nalaganje.setVisibility(View.VISIBLE);
 
+                // Pridobitev vnosa in pošiljanje handlerju za pridobitev podatkov o tem kraju
                 String query = kraj_search.getText().toString();
                 getWeatherData(query, kraj_text, kraj_stopinje, ikona_vremena, false);
             }
         });
 
+        // handler ki simulira klik gumba za poizvedovanje ko kliknemo enter na tipkovnici
         kraj_search.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -96,53 +106,67 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Handler za osveževanje podatkov 
         refresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                
+                // Shrani čas osveževanja
                 try {
                     saveTimestamp(getTimestamp());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                
+                // handler za vrtalko osveževanja (true -> začni vrteti; false -> ustavi vrtenje)
                 refreshImg(true);
+                
+                // pridobi podatke o vremenu
                 try {
+                    // išče poizvedbo že shranjenega imena kraja kar v spremenljivki imena in držve kraja
                     getWeatherData(kraj_text.getText().toString(), kraj_text, kraj_stopinje, ikona_vremena, true);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
-
     }
 
+    // odpri nov activity s pomočjo
     public void openHelpMe(){
         Intent intent = new Intent(this, HelpMe.class);
         startActivity(intent);
     }
 
+    // vrtalka osveževanja 
     public void refreshImg(boolean b){
-        ImageView refresh = (ImageView) findViewById(R.id.refresh);
-        RotateAnimation rotate = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        ImageView refresh = (ImageView) findViewById(R.id.refresh); // pridobi objekt slikice vrtalke
+        
+        // rotacijske funkcije (priprava vrtacije; sama vrtacija se še ne začne)
+        RotateAnimation rotate = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f); 
         rotate.setDuration(400);
         rotate.setRepeatCount(Animation.INFINITE);
         rotate.setInterpolator(new LinearInterpolator());
+        
+        // če je true bo začel vrteti
         if (b){
             refresh.startAnimation(rotate);
         }
+        
+        // če je false se vrtacija konča
         else{
             refresh.clearAnimation();
             Toast.makeText(getApplicationContext(), "Uspešno osveženo!", Toast.LENGTH_SHORT).show();
         }
     }
 
+    // Funkcija za dejansko spreminjanje podatko prikazanih na UI
     public void changeWeather(JsonObject finalResponse, String responseString, TextView kraj_text, TextView kraj_stopinje, ImageView ikona_vremena, boolean is_refreshing){
 
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                //
                 // Nastavitev kraja in države
-                //
                 String kraj = finalResponse.get("name").getAsString();
                 JsonObject drzava1 = (JsonObject) finalResponse.get("sys");
                 String drzava = drzava1.get("country").getAsString();
@@ -167,9 +191,7 @@ public class MainActivity extends AppCompatActivity {
 
                 kraj_text.setText(kraj + ", " + drzava);
 
-                //
                 // Nastavitev temperature
-                //
                 JsonObject obj = (JsonObject) finalResponse.get("main");
                 double temperature = obj.get("temp").getAsDouble();
 
@@ -180,9 +202,7 @@ public class MainActivity extends AppCompatActivity {
                 String s = "" + (int)temperature;
                 kraj_stopinje.setText(s + Html.fromHtml("°"));
 
-                //
                 // Nastavitev vremenske slikice/ikone
-                //
                 JsonArray iconArr = finalResponse.getAsJsonArray("weather");
                 JsonObject iconObj = (JsonObject) iconArr.get(0);
                 String ikona = iconObj.get("icon").getAsString();
@@ -192,11 +212,8 @@ public class MainActivity extends AppCompatActivity {
                 int id = context.getResources().getIdentifier(ikona, "drawable", context.getPackageName());
                 ikona_vremena.setImageResource(id);
 
-                //
                 // Nastavitev opisa
-                //
                 TextView opis = (TextView) findViewById(R.id.opis);
-
                 String stanje = iconObj.get("main").getAsString();
 
                 //prevajalna tabela
@@ -239,9 +256,7 @@ public class MainActivity extends AppCompatActivity {
 
                 opis.setText(stanje);
 
-                //
                 // Nastavitev Zdi Se kot IN Min/Max temp.
-                //
                 TextView zdise = (TextView) findViewById(R.id.zdise);
                 TextView minmax = (TextView) findViewById(R.id.minmax);
 
@@ -272,7 +287,6 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // SHRANJEVANJE V BAZO
-
                 String json = responseString;
 
                 try {
@@ -281,6 +295,7 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 
+                // DEBUG
                 try {
                     System.out.println("LOADED --> " + loadData());
                 } catch (Exception e) {
@@ -288,19 +303,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
     }
 
+    // Funkcija ki poiveduje o podatkih vremena
     public void getWeatherData(String query, TextView kraj_text, TextView kraj_stopinje, ImageView ikona_vremena, boolean is_refreshing){
 
+        // sprazni iskalno polje
         EditText kraj_search = (EditText) findViewById(R.id.kraj_search);
         kraj_search.setText("");
 
+        // nova nit, da aplikacije ne zmrne med iskanjem po internetu
         Thread newThread = new Thread(() -> {
 
+            // API kliuč
             String api_key = "a00b1048e2b6dcedf11f5cd552411546";
             String api_url = "https://api.openweathermap.org/data/2.5/weather?q=" + query + "&appid=" + api_key + "&units=metric";
 
+            // Poizveduj
             try {
                 URL url = new URL(api_url);
 
@@ -311,12 +330,12 @@ public class MainActivity extends AppCompatActivity {
                 //Getting the response code
                 int responsecode = conn.getResponseCode();
 
+                // 404 Not Found (kraja ni bili mogoče najti)
                 if (responsecode == 404){
                     runOnUiThread(new Runnable() {
 
                         @Override
                         public void run() {
-
                             Toast.makeText(getApplicationContext(), "Tega kraja ni bilo mogoče najti", Toast.LENGTH_SHORT).show();
 
                             // KONEC SIMBOLA ZA NALAGANJE
@@ -332,45 +351,51 @@ public class MainActivity extends AppCompatActivity {
                     });
 
                 }
+                // Napaka pri poivedovanju (s strani strežnika)
                 else if (responsecode != 200){
                     System.out.println("Napaka pri API povezavi 2 -> HTTP CODE: " + responsecode);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             Toast.makeText(getApplicationContext(), "Neuspešno. Ali ste vnesli pravilne podatke? Koda: " + responsecode, Toast.LENGTH_LONG).show();
+                            
+                            // KONEC SIMBOLA ZA NALAGANJE
                             ImageView search_img = (ImageView) findViewById(R.id.search_img);
                             ProgressBar nalaganje = (ProgressBar) findViewById(R.id.nalaganje);
                             search_img.setVisibility(View.VISIBLE);
                             nalaganje.setVisibility(View.INVISIBLE);
 
+                            // Če se je osveževalo naj se vrtalka osveževanja neha vrteti
                             if (is_refreshing) {
                                 refreshImg(false);
                             }
                         }
                     });
                 }
+                
+                // Koda 200 OK
                 else {
 
                     String inline = "";
                     Scanner scanner = new Scanner(url.openStream());
 
-                    //Write all the JSON data into a string using a scanner
+                    // JSON -> String (Scanner)
                     while (scanner.hasNext()) {
                         inline += scanner.nextLine();
                     }
-
-                    //Close the scanner
                     scanner.close();
 
-                    //Using the JSON simple library parse the string into a json object
+                    //String -> JseonObject
 
                     String json = inline;
                     JsonObject response = new JsonParser().parse(json).getAsJsonObject();
                     System.out.println(response);
 
+                    // Funkcija za sprembmo podatkov na UI
                     changeWeather(response, json, kraj_text, kraj_stopinje, ikona_vremena, is_refreshing);
 
                 }
+                // zaključi povezavo
                 conn.disconnect();
             }
             catch(IOException e){
@@ -396,6 +421,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // Funkcija za shranjevanje podatkov na telefon
     public void saveData(String data) throws Exception {
 
         FileOutputStream fos = openFileOutput("savedWeatherData", Context.MODE_PRIVATE);
@@ -404,6 +430,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // Funkcija za pridobitev shranjenih podatkov
     public String loadData() throws Exception{
 
         try{
@@ -414,6 +441,7 @@ public class MainActivity extends AppCompatActivity {
             scanner.close();
             return content;
         }
+        // če shranjenih podatkov ni pripravimo "Dummy" Podatke
         catch(FileNotFoundException e){
             String s = "{\n" +
                     "  \"coord\": {\n" +
@@ -463,6 +491,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    
     public void loadFromStorage(TextView kraj_text, TextView kraj_stopinje, ImageView ikona_vremena){
         try {
             String content = loadData();
