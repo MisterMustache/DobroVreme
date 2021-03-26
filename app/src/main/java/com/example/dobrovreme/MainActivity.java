@@ -491,7 +491,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    
+    // nalaganje podatkov iz shrambe in pošiljanje po posodobitvi podatkov
     public void loadFromStorage(TextView kraj_text, TextView kraj_stopinje, ImageView ikona_vremena){
         try {
             String content = loadData();
@@ -503,12 +503,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // shrani čas osvežitve
     public void saveTimestamp(String stamp) throws Exception {
         FileOutputStream fos = openFileOutput("savedTimestamp", Context.MODE_PRIVATE);
         fos.write(stamp.getBytes());
         fos.close();
     }
 
+    // pridobitev časa osvežitve iz shranjenih podatkov
     public String loadTimestamp() throws Exception{
         try{
             FileInputStream fis = openFileInput("savedTimestamp");
@@ -523,6 +525,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // pridobitev časa
     @SuppressLint("SimpleDateFormat")
     public String getTimestamp(){
         return new SimpleDateFormat("dd.MM.yyyy, HH:mm").format(Calendar.getInstance().getTime());
